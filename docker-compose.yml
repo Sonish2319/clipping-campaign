@@ -1,0 +1,153 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: campaign_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: campaign_root_secret
+      MYSQL_DATABASE: campaign_db
+      MYSQL_USER: campaign_user
+      MYSQL_PASSWORD: campaign_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "campaign_user", "-pcampaign_password"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - campaign_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: campaign_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - campaign_net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: campaign_backend
+    restart: always
+    environment:
+      - APP_ENV=development
+      - DEBUG=True
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=campaign_db
+      - MYSQL_USER=campaign_user
+      - MYSQL_PASSWORD=campaign_password
+      - DATABASE_URL=mysql+pymysql://campaign_user:campaign_password@mysql:3306/campaign_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+      - FRONTEND_URL=http://localhost:3000
+      - BACKEND_URL=http://localhost:8000
+      - SECRET_KEY=dev_secret_key_change_me_super_secure_and_long_jwt_signing_key_32chars!
+      - FERNET_ENCRYPTION_KEY=dGhpcy1pcy1hLXNhbXBsZS1mZXJuZXQta2V5LTMyYnl0ZXM9
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-mock_client_id}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-mock_client_secret}
+      - YOUTUBE_API_KEY=${YOUTUBE_API_KEY:-mock_youtube_key}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - campaign_net
+
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: campaign_celery_worker
+    restart: always
+    command: celery -A app.core.celery_app worker --loglevel=info -c 4
+    environment:
+      - MYSQL_HOST=mysql
+      - DATABASE_URL=mysql+pymysql://campaign_user:campaign_password@mysql:3306/campaign_db
+      - REDIS_HOST=redis
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+      - SECRET_KEY=dev_secret_key_change_me_super_secure_and_long_jwt_signing_key_32chars!
+      - FERNET_ENCRYPTION_KEY=dGhpcy1pcy1hLXNhbXBsZS1mZXJuZXQta2V5LTMyYnl0ZXM9
+      - YOUTUBE_API_KEY=${YOUTUBE_API_KEY:-mock_youtube_key}
+    volumes:
+      - ./backend:/app
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - campaign_net
+
+  celery_beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: campaign_celery_beat
+    restart: always
+    command: celery -A app.core.celery_app beat --loglevel=info
+    environment:
+      - MYSQL_HOST=mysql
+      - DATABASE_URL=mysql+pymysql://campaign_user:campaign_password@mysql:3306/campaign_db
+      - REDIS_HOST=redis
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+    volumes:
+      - ./backend:/app
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - campaign_net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: campaign_frontend
+    restart: always
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+      - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-mock_client_id}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - backend
+    networks:
+      - campaign_net
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  campaign_net:
+    driver: bridge

@@ -1,0 +1,40 @@
+# ==========================================
+# Backend .gitignore (FastAPI / Python)
+# ==========================================
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Environment files & Secrets
+.env
+.env.*
+!.env.example
+
+# Celery & PID
+celerybeat-schedule
+celerybeat.pid
+*.pid
+
+# Local SQLite / Databases
+*.sqlite
+*.sqlite3
+*.db
+
+# Logs
+*.log
+logs/
