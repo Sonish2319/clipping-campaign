@@ -54,6 +54,15 @@ class Settings(BaseSettings):
     # Polling frequency
     VIDEO_POLLING_INTERVAL_MINUTES: int = 3
 
+    # AI Assistant & RAG Configuration
+    LLM_PROVIDER: str = "gemini"
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-3-flash-preview"
+    OLLAMA_BASE_URL: str = "http://localhost:11434/v1"
+    OLLAMA_MODEL: str = "llama3.1:latest"
+    QDRANT_HOST: str = "localhost"
+    QDRANT_PORT: int = 6333
+
     def get_database_url(self) -> str:
         if self.DATABASE_URL:
             return self.DATABASE_URL

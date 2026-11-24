@@ -13,6 +13,7 @@ from app.api.v1 import (
     analytics,
     notifications,
     admin,
+    ai,
 )
 
 app = FastAPI(
@@ -48,6 +49,7 @@ app.include_router(youtube.router, prefix="/api/v1")
 app.include_router(analytics.router, prefix="/api/v1")
 app.include_router(notifications.router, prefix="/api/v1")
 app.include_router(admin.router, prefix="/api/v1")
+app.include_router(ai.router, prefix="/api/v1")
 
 
 @app.get("/", tags=["Health"])

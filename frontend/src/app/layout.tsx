@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { Navbar } from "@/components/navbar";
+import { AIChatDrawer } from "@/components/ai-chat-drawer";
 
 export const metadata: Metadata = {
   title: "ClipRewards | YouTube Creator Campaign Marketplace",
@@ -19,6 +20,7 @@ export default function RootLayout({
         <AuthProvider>
           <Navbar />
           <main className="flex-1">{children}</main>
+          <AIChatDrawer />
         </AuthProvider>
       </body>
     </html>
